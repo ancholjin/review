@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+
+<th:block th:replace="~{/layout/basic :: setContent(~{this::content} )}">
+
+  <th:block th:fragment="content">
+
+    <h1 class="mt-4">Review Modify Page</h1>
+
+    <form th:action="@{/review/modify}" th:method="post"  >
+      <input type="hidden" name="page" th:value="${requestDTO.page}">
+      <div class="form-group">
+        <label >Rnum</label>
+        <input type="text" class="form-control" name="rnum" th:value="${dto.rnum}" readonly >
+      </div>
+
+      <div class="form-group">
+        <label >Title</label>
+        <input type="text" class="form-control" name="title" th:value="${dto.title}" >
+      </div>
+      <div class="form-group">
+        <label >Content</label>
+        <textarea class="form-control" rows="5" name="content">[[${dto.content}]]</textarea>
+        <div class="custom-file">
+          <input type="file"  class="custom-file-input files" id="fileInput" multiple>
+          <label class="custom-file-label" data-browse="Browse">Photo</label>
+        </div>
+      </div>
+      <div class="form-group">
+        <label >Writer</label>
+        <input type="text" class="form-control" name="writer" th:value="${dto.writer}" >
+      </div>
+      <div class="form-group">
+        <label >RegDate</label>
+        <input type="text" class="form-control"
+               th:value="${#temporals.format(dto.regDate, 'yyyy/MM/dd HH:mm:ss')}" readonly>
+      </div>
+      <div class="form-group">
+        <label >ModDate</label>
+        <input type="text" class="form-control"
+               th:value="${#temporals.format(dto.modDate, 'yyyy/MM/dd HH:mm:ss')}" readonly>
+      </div>
+
+      <a th:href="@{/review/list(page=${requestDTO.page})}">
+        <button type="button" class="btn btn-info">List</button>
+      </a>
+      <button type="button" class="btn btn-primary">Modify</button>
+      <button type="button" class="btn btn-danger">Delete</button>
+
+    </form>
+
+    <style>
+        .uploadResult {
+            width: 100%;
+            background-color: gray;
+            margin-top: 10px;
+        }
+
+        .uploadResult ul {
+            display: flex;
+            flex-flow: row;
+            justify-content: center;
+            align-items: center;
+            vertical-align: top;
+
+        }
+
+        .uploadResult ul li {
+            list-style: none;
+            padding: 10px;
+            margin-left: 2em;
+        }
+
+        .uploadResult ul li img {
+            width: 100px;
+        }
+    </style>
+
+    <div class="uploadResult" >
+      <ul >
+        <li th:if="${dto.photos}" th:each="photo: ${dto.photos}" th:data-path="${photo.uploadPath}"
+            th:data-uuid="${photo.uuid}"
+            th:data-name="${photo.fileName}"
+            th:data-pnum="${photo.pnum}">
+          <div>
+            <button type='button' th:data-file="${photo.getThumbnailURL()}" class='btn-warning btn-sm'>X</button><br>
+            <img th:src=|/display?fileName=${photo.getThumbnailURL()}|>
+          </div>
+        </li>
+      </ul>
+    </div>
+
+
+
+    <script th:inline="javascript">
+    $(document).ready(function() {
+
+        console.log("...................1")
+
+      $('form .btn-danger').click(function (e) {
+
+          e.preventDefault();
+
+          console.log("................")
+
+          if (confirm("삭제하시겠습니까?")) {
+
+              $("form").attr("action", "/review/remove").submit();
+
+              return;
+
+          }
+
+          return false;
+      });
+
+
+      $(".uploadResult ").on("click", "li button", function(e){
+
+          if(!confirm("파일을 삭제하면 반드시 Modify버튼을 통해서 저장하세요")){
+              return false;
+          }
+
+          var targetFile = $(this).data("file");
+
+          console.log("delete file: " + targetFile);
+
+          var targetLi = $(this).closest("li");
+
+          $.ajax({
+              url: '/deleteFile',
+              data: {fileName: targetFile},
+              dataType:'text',
+              type: 'POST',
+              success: function(result){
+                  alert(result);
+
+                  targetLi.remove();
+              }
+          }); //$.ajax
+
+      });
+
+      //첨부 이미지 추가
+        $(".custom-file-input").on("change", function() {
+            var fileName = $(this).val().split("\\").pop();
+            $(this).siblings(".custom-file-label").addClass("selected").html(fileName);
+
+            var formData = new FormData();
+
+            var inputFile = $("input[type='file']");
+
+            var files = inputFile[0].files;
+
+            var appended = false;
+            for (var i = 0; i < files.length; i++) {
+                console.log(files[i]);
+                formData.append("uploadFiles", files[i]);
+                appended = true;
+            }
+
+            //upload를 하지 않는다.
+            if (!appended) {return;}
+
+            for (var value of formData.values()) {
+                console.log(value);
+            }
+
+            //실제 업로드 부분
+            //upload ajax
+            $.ajax({
+                url: '/uploadAjax',
+                processData: false,
+                contentType: false,
+                data: formData,
+                type: 'POST',
+                dataType:'json',
+                success: function(result){
+                    console.log(result);
+                    //나중에 화면 처리
+                    showResult(result);
+                },
+                error: function(jqXHR, textStatus, errorThrown){
+                    console.log(textStatus);
+                }
+
+            }); //$.ajax
+
+        });
+
+        function showResult(uploadResultArr){
+
+            var uploadUL = $(".uploadResult ul");
+
+            var str ="";
+
+            $(uploadResultArr).each(function(i, obj) {
+
+                str += "<li data-name='"+obj.fileName+"' ";
+                str += "data-path='"+obj.uploadPath+"' " ;
+                str += "data-uuid='"+obj.uuid+"' >";
+                str + " <div>";
+                str += "<button type='button' data-file=\'" + obj.thumbnailURL + "\' "
+                str += "class='btn-warning btn-sm'>X</button><br>";
+                str += "<img src='/display?fileName=" + obj.thumbnailURL + "'>";
+                str += "</div>";
+                str + "</li>";
+            });
+
+            uploadUL.append(str);
+        }
+
+        //<form>태그 submit처리
+        //prevent submit
+        $(".btn-primary").on("click", function(e) {
+
+            e.preventDefault();
+
+            alert("modify........");
+
+            var str = "";
+            $(".uploadResult li").each(function(i,obj){
+                var target = $(obj);
+
+                var pnum = target.data("pnum");
+
+                if(pnum){
+                    str += "<input type='hidden' name='photos["+i+"].pnum' value='"+pnum+"'>";
+                }
+                str += "<input type='hidden' name='photos["+i+"].uuid' value='"+target.data("uuid")+"'>";
+                str += "<input type='hidden' name='photos["+i+"].fileName' value='"+target.data("name")+"'>";
+                str += "<input type='hidden' name='photos["+i+"].uploadPath' value='"+target.data("path")+"'>";
+            });
+
+            $("form").append(str).submit();
+        });
+
+    });
+  </script>
+
+    </th:block>
+
+</th:block>
