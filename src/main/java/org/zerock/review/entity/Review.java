@@ -34,6 +34,8 @@ public class Review extends BaseEntity {
         photos.add(photo);
     }
 
+
+
     public void deletePhoto(Photo photo){
 
         Optional<Photo> result = photos.stream()

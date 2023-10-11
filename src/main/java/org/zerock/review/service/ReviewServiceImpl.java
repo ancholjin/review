@@ -19,6 +19,8 @@ import org.zerock.review.repository.ReviewRepository;
 import java.util.Optional;
 import java.util.function.Function;
 
+import static org.zerock.review.entity.QReview.review;
+
 @Service
 @RequiredArgsConstructor
 @Log4j2
@@ -75,7 +77,7 @@ public class ReviewServiceImpl implements ReviewService {
     private BooleanBuilder getSearch(PageRequestDTO requestDTO){//Querydsl처리
         String type = requestDTO.getType();
         BooleanBuilder booleanBuilder = new BooleanBuilder();
-        QReview qReview = QReview.review;
+        QReview qReview = review;
         String keyword = requestDTO.getKeyword();
         BooleanExpression expression = qReview.rnum.gt(0L);//rnum >0 조건만 생성
         booleanBuilder.and(expression);
@@ -99,7 +101,7 @@ public class ReviewServiceImpl implements ReviewService {
         return booleanBuilder;
     }
 
-    @Override
+   /* @Override
     public PageResultDTO<ReviewDTO,Review> getListSearch(PageRequestDTO requestDTO){
         Pageable pageable = (Pageable) requestDTO.getPageable(Sort.by("rnum")
                 .descending());
@@ -109,6 +111,28 @@ public class ReviewServiceImpl implements ReviewService {
         // 엔티티객채들을  DTO의 리스트로 변환하고 화면에 페이지 처리와 필요한 값들을 생성합니다
         return new PageResultDTO<>(result, fn);
     }
+*/
+   @Override
+   public PageResultDTO<ReviewDTO, Review> getListSearch(PageRequestDTO requestDTO) {
+       Pageable pageable = (Pageable) requestDTO.getPageable(Sort.by("rnum").descending());
+
+       // 키워드를 가져와서 제목과 내용에 대한 검색 조건을 추가
+       String keyword = requestDTO.getKeyword();
+       BooleanBuilder booleanBuilder = new BooleanBuilder();
+       if (keyword != null) {
+           booleanBuilder.andAnyOf(
+                   review.title.contains(keyword),
+                   review.content.contains(keyword),
+                   review.writer.contains(keyword)
+           );
+       }
+
+       Page<Review> result = reviewRepository.findAll(booleanBuilder, pageable);
+       Function<Review, ReviewDTO> fn = (entity -> entityToDTO(entity));
+
+       // 엔티티 객체들을 DTO의 리스트로 변환하고 화면에 페이지 처리와 필요한 값들을 생성합니다
+       return new PageResultDTO<>(result, fn);
+   }
     @Override
     public PageResultDTO<ReviewDTO, Review> getList(PageRequestDTO pageRequestDTO) {
         log.info(pageRequestDTO);

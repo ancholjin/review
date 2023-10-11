@@ -40,47 +40,6 @@ public class ReviewController {
         return "redirect:/review/list";
     }
 
-    /*@GetMapping("/list")
-    public void list(PageRequestDTO pageRequestDTO, Model model){
-
-        log.info("pageRequestDTO: " + pageRequestDTO);
-
-        PageResultDTO<ReviewDTO, Review> result = reviewService.getList(pageRequestDTO);
-
-        model.addAttribute("result", result);
-
-    }
-
-    @GetMapping("/list")
-    public void searchList(PageRequestDTO pageRequestDTO, Model model){
-
-        log.info("list............." + pageRequestDTO);
-
-        model.addAttribute("result", reviewService.getListSearch(pageRequestDTO));
-
-    }*/
-
-    @GetMapping("/list")
-    public void handleListRequest(
-            // 조회인지 검색인지 판단해서 적절한 매서드 호출
-            @RequestParam(value = "action", required = false) String action,
-            PageRequestDTO pageRequestDTO,
-            Model model) {
-
-        PageResultDTO<ReviewDTO, Review> result;
-
-        if ("search".equals(action)) {
-
-            result = reviewService.getListSearch(pageRequestDTO);
-        } else {
-
-            result = reviewService.getList(pageRequestDTO);
-        }
-
-        model.addAttribute("result", result);
-    }
-
-
     @GetMapping(value = {"/read","/modify"})
     public void read(Long rnum,
                      @ModelAttribute("requestDTO") PageRequestDTO pageRequestDTO,

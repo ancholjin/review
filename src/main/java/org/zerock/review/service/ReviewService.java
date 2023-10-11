@@ -57,6 +57,7 @@ public interface ReviewService {
                 .rnum(review.getRnum())
                 .content(review.getContent())
                 .title(review.getTitle())
+                .writer(review.getWriter())
                 .regDate(review.getRegDate())
                 .modDate(review.getModDate())
                 .build();
